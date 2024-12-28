@@ -47,4 +47,90 @@ enum {
     OP_TRAP // executes trap routine; trap vector specifies what to do
 }; 
 
-// Assembly examples TODO
+int main(int argc, const char* argv[]){
+
+    // need to check if we have enough args (argc>2) this will result in the program having at least one memory image file argv[1]
+    if (argc < 2) {
+        printf("lc3 [image-file1] ...\n");
+        exit(2);
+    }
+
+    // start at 1 to skip argv[0] = program name; attempt to lead the image file using read_image
+    // where image files are some 
+    for (int j = 1; j < argc; ++j){
+        if (!read_image(argv[j])){
+            printf("failed to load image: %s\n", argv[j]);
+            exit(1);
+        }
+    }
+
+    //TODO setup
+
+    // need to have the COND flag be zero before loading PC into register
+    // to avoid improper init state
+    reg[R_COND] = FL_ZRO; 
+
+    // set program counter to the default starting position of 0x3000
+    enum { PC_START = 0x3000 };
+    reg[R_PC] = PC_START;
+
+    int running = 1;
+    while (running) {
+        // fetch
+        uint16_t instr = mem_read(reg[R_PC]++); // get instruction in PC (instr=) and increment to next instruction
+        uint16_t op = instr >> 12; // bitwise shift to the right by 12, so that the opcode now occupies the upper 4 bits
+
+
+        // TODO implement instruction logic 
+        switch (op){
+            case OP_ADD:
+            // logic for each opcode needs to repalce the comments in here, just building out structure for now
+                break;
+            case OP_AND:
+            //
+                break;
+            case OP_NOT:
+            //
+                break;
+            case OP_BR:
+            //
+                break;
+            case OP_JMP:
+            //
+                break;
+            case OP_JSR:
+            //
+                break;
+            case OP_LD:
+            //
+                break;
+            case OP_LDI:
+            //
+                break;
+            case OP_LDR:
+            //
+                break;
+            case OP_LEA:
+            //
+                break;
+            case OP_ST:
+            //
+                break;
+            case OP_STI:
+            //
+                break;
+            case OP_STR:
+            //
+                break;
+            case OP_TRAP:
+            //
+                break;
+            case OP_RES:
+            case OP_RTI:
+            default:
+                // logic for bad opcode needs to go here in default
+                break;
+        }
+    }
+    // shutdown logic here
+}
