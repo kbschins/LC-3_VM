@@ -120,7 +120,7 @@ int main(int argc, const char* argv[]){
                     if (imm_flag){
                         uint16_t imm5 = sign_extend(instr & 0x15, 5); //if immediate mode, sign extend the 5-bit number to 16 so we can add it to SR1
                         reg[r0] = reg[r1] + imm5;
-                    }
+                    } 
                     else {
                         uint16_t r2 = instr & 0x7; //if register mode we just get SR2 and add it, it's already 16 bit so no sign extension
                         reg[r0] = reg[r1] + reg[r2];
@@ -129,24 +129,66 @@ int main(int argc, const char* argv[]){
                 }
                 break;
             
-            case OP_AND:
-            //
+            case OP_AND: // bitwise and
+                {
+                    uint16_t r0 = (instr >> 9) & 0x7; // DR
+                    uint16_t r1 = (instr >> 6) & 0x7; // SR
+                    uint16_t imm_flag = (instr >> 5) & 0x1; //immediate mode or SR2
+
+                    if (imm_flag){
+                        uint16_t imm5 = sign_extend(instr & 0x1F, 5);
+                        reg[r0] = reg[r1] & imm5;
+                    } 
+                    else {
+                        uint16_t r2 = instr & 0x7;
+                        reg[r0]= reg[r1] & reg[r2];
+                    }
+                    update_flags(r0);
+                }
                 break;
 
-            case OP_NOT:
-            //
+            case OP_NOT: //bitwise not
+                {
+                    uint16_t r0 = (instr >> 9) & 0x7; //DR
+                    uint16_t r1 = (instr >> 6) & 0x7; //SR
+                    reg[0] = ~reg[r1]; // ~ is just a bitwise NOT
+                    update_flags(r0);
+                }
                 break;
 
-            case OP_BR:
-            //
+            case OP_BR: // branch
+                {
+                    uint16_t pc_offset = sign_extend(instr & 0x1FF, 9); // get pc_offset from instruction register
+                    // this is the relative distance to the target instruction
+                    uint16_t cond_flag = (instr >> 9) & 0x7; // get cond flag from instruction register
+                    if (cond_flag & reg[R_COND]){
+                        reg[R_PC] += pc_offset;
+                    }
+                }
                 break;
 
-            case OP_JMP:
-            //
+            case OP_JMP: //jump to given register; this handles RET too hence RET being blank later. RET is a specialized case of JMP when r1 is 7
+                {
+                    uint16_t r1 = (instr >> 6) & 0x7;
+                    reg[R_PC] = reg[r1];
+                }
                 break;
 
-            case OP_JSR:
-            //
+            case OP_JSR: // jump to subroutine
+            // stores the return address then bramches to the target subroutine
+                {
+                    uint16_t long_flag = (instr >> 11) & 1; // flag for if we use long PC offset or a specified register as the target for the subroutine
+                    reg[R_R7] = reg[R_PC];
+
+                    if (long_flag){ // if target subroutine is based on a long PC offset
+                        uint16_t long_pc_offset = sign_extend(instr & 0x7FF, 11);
+                        reg[R_PC] += long_pc_offset;
+                    }
+                    else { // target subroutine register defined as a register-based target
+                        uint16_t r1 = (instr >> 6) & 0x7;
+                        reg[R_PC] = reg[r1];
+                    }
+                }
                 break;
 
             case OP_LD:
