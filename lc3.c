@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 
 #define MEMORY_MAX (1 << 16) //bitwise shift of 1 left by 16 positions, resulting in 10000000000000000(b) or 65536(d)
 uint16_t memory[MEMORY_MAX]; 
@@ -47,6 +48,15 @@ enum {
     OP_TRAP // executes trap routine; trap vector specifies what to do
 }; 
 
+//----- define trap codes
+enum {
+    TRAP_GETC = 0x20, //get char from keyboard - no echo to terminal
+    TRAP_OUT = 0x21, // output character
+    TRAP_PUTS = 0x22, // output a word string
+    TRAP_IN = 0x23, //get char from keyboard, echoed onto terminal
+    TRAP_PUTSP = 0x24, // output byte string
+    TRAP_HALT = 0x25 // halt program
+};
 
 
 //----- sign extension function -> used to fill up bits in a register for a given smaller signed int, while preserving sign
@@ -259,7 +269,70 @@ int main(int argc, const char* argv[]){
                 break;
 
             case OP_TRAP:
-            //
+                {
+                    reg[R_R7] = reg[R_PC];
+
+                    switch (instr & 0xFF)
+                    {
+                        case TRAP_GETC:
+                            {
+                                reg[R_R0] = (uint16_t)getchar();
+                                update_flags(R_R0);
+                            }
+                            break;
+                        
+                        case TRAP_OUT:
+                            {
+                                putc((char)reg[R_R0],stdout);
+                                fflush(stdout);
+                            }
+                            break;
+
+                        case TRAP_PUTS:
+                            {
+                                uint16_t* c = memory + reg[R_R0];
+                                while (*c){
+                                    putc((char)*c, stdout);
+                                    ++c;
+                                }
+                                fflush(stdout);
+                            }
+                            break;
+                        
+                        case TRAP_IN:
+                            {
+                                printf("Enter a character: ");
+                                char c = getchar();
+                                putc(c,stdout);
+                                fflush(stdout);
+                                reg[R_R0] = (uint16_t)c;
+                                update_flags(R_R0);
+                            }
+                            break;
+
+                        case TRAP_PUTSP:
+                            {
+                                uint16_t* c = memory + reg[R_R0];
+                                while (*c){
+                                    char char1 = (*c) & 0xFF;
+                                    putc(char1, stdout);
+                                    char char2 = (*c) >> 8;
+                                    if (char2) putc(char2, stdout);
+                                    ++c;
+                                }
+                                fflush(stdout);
+                            }
+                            break;
+
+                        case TRAP_HALT:
+                            {
+                                puts("HALT");
+                                fflush(stdout);
+                                running = 0;
+                            }
+                            break;
+                    }
+                }
                 break;
 
             case OP_RES:
